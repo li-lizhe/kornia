@@ -355,22 +355,9 @@ class PinholeCamera:
     def scale_(self, scale_factor: Union[float, torch.Tensor]) -> "PinholeCamera":
         r"""Scale the pinhole model in-place.
 
-        Convention:
-            - applies the same rescaling as :meth:`scale` in place and returns ``self``. The camera stores the
-              tensors it was constructed from, so the caller's ``intrinsics``, ``height`` and ``width`` are
-              written into as well.
-            - with a floating-point ``scale_factor``, writing back into an integer ``height`` / ``width`` raises
-              :class:`RuntimeError` where :meth:`scale` promotes it to floating point. An integer factor
-              succeeds. The focal lengths and principal point have already been scaled when the error is
-              raised, including in the caller's intrinsics tensor: the camera is left partially scaled.
-              If ``height`` is integer, both image dimensions are unchanged; if only ``width`` is integer,
-              ``height`` has already been scaled too.
-
-        .. warning::
-            The failure on an integer image size with a floating-point scale factor is tracked in
-            `#4265 <https://github.com/kornia/kornia/issues/4265>`_, the write-through to the caller's tensors
-            in `#4264 <https://github.com/kornia/kornia/issues/4264>`_, and the principal-point rule shared
-            with :meth:`scale` in `#4263 <https://github.com/kornia/kornia/issues/4263>`_.
+        The intrinsics are updated in place while ``height`` and ``width``
+        are rebound to the floating-point scaled size, so an integer image
+        size is promoted as in :meth:`scale`.
 
         Args:
             scale_factor: a torch.Tensor with the scale factor. It has
@@ -379,6 +366,11 @@ class PinholeCamera:
 
         Returns:
             the camera model with scaled parameters.
+
+        .. note::
+            As a consequence of the rebinding, ``scale_`` no longer mutates
+            the ``height``/``width`` tensors the caller passed to the
+            constructor; ``intrinsics`` are still updated in place.
 
         """
         # scale the intrinsic parameters
@@ -390,7 +382,6 @@ class PinholeCamera:
         self.height = self.height * scale_factor
         self.width = self.width * scale_factor
         return self
-
     def project(self, point_3d: torch.Tensor) -> torch.Tensor:
         r"""Project a 3d point in world coordinates onto the 2d camera plane.
 
