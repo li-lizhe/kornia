@@ -51,7 +51,9 @@ class PinholeCamera:
           as the Euclidean ray length instead, so the unprojected point has that norm rather than that ``z``.
         - the class stores the tensors it is constructed from instead of copying them: :meth:`scale` returns a
           new camera that **shares** ``extrinsics`` with the source, and :meth:`scale_` and the ``tx`` / ``ty``
-          / ``tz`` setters write into the caller's tensors. :meth:`clone` is the only deep copy.
+          / ``tz`` setters write into the caller's tensors. :meth:`clone` is the only deep copy. Since PR #4341
+          :meth:`scale_` rebinds ``height`` / ``width`` (so those caller tensors are no longer mutated) while
+          still writing ``intrinsics`` through in place.
 
     .. warning::
         :meth:`scale` and :meth:`scale_` rescale the principal point as ``cx' = s * cx`` — the half-pixel rule —
@@ -324,7 +326,7 @@ class PinholeCamera:
             - the new camera **shares** its ``extrinsics`` tensor with the source, so writing ``tx`` / ``ty`` /
               ``tz`` on either camera moves both; the intrinsics are cloned. :meth:`clone` is the deep copy.
             - with a floating-point ``scale_factor``, an integer ``height`` / ``width`` is promoted to floating
-              point, unlike :meth:`scale_`. An integer factor preserves the integer image-size dtype.
+              point, just as :meth:`scale_` now does. An integer factor preserves the integer image-size dtype.
 
         .. warning::
             The ``cx' = s * cx`` rule disagrees with the integer pixel centres the rest of the library
